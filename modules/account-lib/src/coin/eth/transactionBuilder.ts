@@ -55,6 +55,10 @@ export class TransactionBuilder extends BaseTransactionBuilder {
   private _contractAddress: string;
   private _contractCounter: number;
 
+  // generic contract call builder
+  // encoded contract call hex
+  private _data: string;
+
   /**
    * Public constructor.
    *
@@ -103,6 +107,8 @@ export class TransactionBuilder extends BaseTransactionBuilder {
         return this.buildFlushCoinsTransaction();
       case TransactionType.SingleSigSend:
         return this.buildBase('0x');
+      case TransactionType.ContractCall:
+        return this.buildGenericContractCallTransaction();
       default:
         throw new BuildTransactionError('Unsupported transaction type');
     }
@@ -289,6 +295,10 @@ export class TransactionBuilder extends BaseTransactionBuilder {
       case TransactionType.StakingActivate:
       case TransactionType.StakingWithdraw:
         break;
+      case TransactionType.ContractCall:
+        this.validateContractAddress();
+        this.validateDataField();
+        break;
       default:
         throw new BuildTransactionError('Unsupported transaction type');
     }
@@ -333,6 +343,15 @@ export class TransactionBuilder extends BaseTransactionBuilder {
   private validateContractAddress(): void {
     if (this._contractAddress === undefined) {
       throw new BuildTransactionError('Invalid transaction: missing contract address');
+    }
+  }
+
+  /**
+   * Checks if a contract call data field was defined or throws otherwise
+   */
+  private validateDataField(): void {
+    if (!this._data) {
+      throw new BuildTransactionError('Invalid transaction: missing contract call data field');
     }
   }
 
@@ -452,8 +471,10 @@ export class TransactionBuilder extends BaseTransactionBuilder {
   //region Send builder methods
 
   contract(address: string): void {
-    if (isValidEthAddress(address)) this._contractAddress = address;
-    else throw new BuildTransactionError('Invalid address: ' + address);
+    if (!isValidEthAddress(address)) {
+      throw new BuildTransactionError('Invalid address: ' + address);
+    }
+    this._contractAddress = address;
   }
 
   /**
@@ -564,6 +585,20 @@ export class TransactionBuilder extends BaseTransactionBuilder {
    */
   private buildFlushCoinsTransaction(): TxData {
     return this.buildBase(flushCoinsData());
+  }
+  //endregion
+
+  //region generic contract call
+  data(encodedCall: string): void {
+    if (this._type !== TransactionType.ContractCall) {
+      throw new BuildTransactionError('data can only be set for contract call transaction types');
+    }
+    // TODO: validate param
+    this._data = encodedCall;
+  }
+
+  private buildGenericContractCallTransaction(): TxData {
+    return this.buildBase(this._data);
   }
   //endregion
 
