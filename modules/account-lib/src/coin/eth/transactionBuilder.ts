@@ -1,20 +1,15 @@
-import { BaseCoin as CoinConfig } from '@bitgo/statics/dist/src/base';
+import {BaseCoin as CoinConfig} from '@bitgo/statics/dist/src/base';
 import EthereumCommon from 'ethereumjs-common';
 import EthereumAbi from 'ethereumjs-abi';
 import BigNumber from 'bignumber.js';
-import { RLP } from 'ethers/utils';
+import {RLP} from 'ethers/utils';
 import * as Crypto from '../../utils/crypto';
-import { BaseTransaction, BaseTransactionBuilder, TransactionType } from '../baseCoin';
-import { BaseAddress, BaseKey } from '../baseCoin/iface';
-import { Transaction, TransferBuilder, Utils } from '../eth';
-import {
-  BuildTransactionError,
-  InvalidTransactionError,
-  ParseTransactionError,
-  SigningError,
-} from '../baseCoin/errors';
-import { KeyPair } from './keyPair';
-import { Fee, SignatureParts, TxData } from './iface';
+import {BaseTransaction, BaseTransactionBuilder, TransactionType} from '../baseCoin';
+import {BaseAddress, BaseKey} from '../baseCoin/iface';
+import {Transaction, TransferBuilder, Utils} from '../eth';
+import {BuildTransactionError, InvalidTransactionError, ParseTransactionError, SigningError,} from '../baseCoin/errors';
+import {KeyPair} from './keyPair';
+import {Fee, SignatureParts, TxData} from './iface';
 import {
   calculateForwarderAddress,
   flushCoinsData,
@@ -24,7 +19,7 @@ import {
   hasSignature,
   isValidEthAddress,
 } from './utils';
-import { walletSimpleByteCode, walletSimpleConstructor } from './walletUtil';
+import {walletSimpleByteCode, walletSimpleConstructor} from './walletUtil';
 
 const DEFAULT_M = 3;
 
@@ -153,39 +148,27 @@ export class TransactionBuilder extends BaseTransactionBuilder {
         });
         break;
       case TransactionType.FlushTokens:
-        if (transactionJson.to === undefined) {
-          throw new BuildTransactionError('Undefined recipient address');
-        }
-        // the address of the wallet contract that we are calling "flushForwarderTokens" on
-        this.contract(transactionJson.to);
+        this.setContract(transactionJson.to);
         const { forwarderAddress, tokenAddress } = Utils.decodeFlushTokensData(transactionJson.data);
         this.forwarderAddress(forwarderAddress);
         this.tokenAddress(tokenAddress);
         break;
       case TransactionType.FlushCoins:
-        if (transactionJson.to === undefined) {
-          throw new BuildTransactionError('Undefined recipient address');
-        }
-        this.contract(transactionJson.to);
+        this.setContract(transactionJson.to);
         break;
       case TransactionType.Send:
-        if (transactionJson.to === undefined) {
-          throw new BuildTransactionError('Undefined recipient address');
-        }
-        this.contract(transactionJson.to);
+        this.setContract(transactionJson.to);
         this._transfer = this.transfer(transactionJson.data);
         break;
       case TransactionType.AddressInitialization:
-        if (transactionJson.to === undefined) {
-          throw new BuildTransactionError('Undefined recipient address');
-        }
-        this.contract(transactionJson.to);
+        this.setContract(transactionJson.to);
         break;
       case TransactionType.SingleSigSend:
-        if (transactionJson.to === undefined) {
-          throw new BuildTransactionError('Undefined recipient address');
-        }
-        this.contract(transactionJson.to);
+        this.setContract(transactionJson.to);
+        break;
+      case TransactionType.ContractCall:
+        this.setContract(transactionJson.to);
+        this.data(transactionJson.data);
         break;
       default:
         throw new BuildTransactionError('Unsupported transaction type');
@@ -353,6 +336,13 @@ export class TransactionBuilder extends BaseTransactionBuilder {
     if (!this._data) {
       throw new BuildTransactionError('Invalid transaction: missing contract call data field');
     }
+  }
+
+  private setContract(address: string | undefined): void {
+    if (address === undefined) {
+      throw new BuildTransactionError('Undefined recipient address');
+    }
+    this.contract(address);
   }
 
   validateValue(value: BigNumber): void {

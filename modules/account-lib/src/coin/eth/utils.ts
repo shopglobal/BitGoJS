@@ -333,10 +333,10 @@ export function classifyTransaction(data: string): TransactionType {
   }
 
   // TODO: validate if we are going to constraint to some methods allowed
-  const transactionType = transactionTypesMap[data.slice(0, 10).toLowerCase()] | TransactionType.ContractCall;
-  // if (transactionType === undefined) {
-  //   throw new BuildTransactionError(`Unrecognized transaction type: ${data}`);
-  // }
+  let transactionType = transactionTypesMap[data.slice(0, 10).toLowerCase()];
+  if (transactionType === undefined) {
+    transactionType = TransactionType.ContractCall;
+  }
 
   return transactionType;
 }
