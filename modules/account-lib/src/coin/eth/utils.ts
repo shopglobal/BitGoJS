@@ -332,7 +332,7 @@ export function classifyTransaction(data: string): TransactionType {
     return TransactionType.SingleSigSend;
   }
 
-  // TODO: validate if we are going to constraint to some methods allowed
+  // TODO(STLX-1970): validate if we are going to constraint to some methods allowed
   let transactionType = transactionTypesMap[data.slice(0, 10).toLowerCase()];
   if (transactionType === undefined) {
     transactionType = TransactionType.ContractCall;

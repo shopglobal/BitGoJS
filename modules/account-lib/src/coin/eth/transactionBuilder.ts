@@ -583,7 +583,7 @@ export class TransactionBuilder extends BaseTransactionBuilder {
     if (this._type !== TransactionType.ContractCall) {
       throw new BuildTransactionError('data can only be set for contract call transaction types');
     }
-    // TODO: validate param
+    // TODO(STLX-2043): validate param
     this._data = encodedCall;
   }
 
