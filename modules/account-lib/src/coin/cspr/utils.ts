@@ -1,6 +1,6 @@
 import BigNumber from 'bignumber.js';
 import { Keys } from 'casper-client-sdk';
-import { ExecutableDeployItem } from 'casper-client-sdk/dist/lib/DeployUtil';
+import { ExecutableDeployItem, ModuleBytes } from 'casper-client-sdk/dist/lib/DeployUtil';
 import { InvalidTransactionError } from '../baseCoin/errors';
 import { DefaultKeys } from '../baseCoin/iface';
 import * as Crypto from './../../utils/crypto';
@@ -129,6 +129,20 @@ export function getTransferId(transferTx: ExecutableDeployItem): number {
     .asBigNumber()
     .toNumber();
 }
+
+  /**
+   * Check if a ModuleBytes session instance is related to a Wallet Initialization Contract
+   *
+   * @param {ModuleBytes} session - The session to be analyzed
+   * @returns {boolean} - true if session data is a Wallet Initialization Contract
+   */
+  export function isWalletInitContract(session?: ModuleBytes): boolean {
+    if (!session) {
+      return false;
+    }
+    const moduleBytes = Buffer.from(session.moduleBytes).toString('hex');
+    return moduleBytes !== undefined && moduleBytes === walletInitContractHexCode;
+  }
 
 /**
  * Wallet Initialization Contract HexCode

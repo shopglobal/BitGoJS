@@ -6,8 +6,8 @@ import { BaseKey } from '../baseCoin/iface';
 import { InvalidTransactionError, SigningError } from '../baseCoin/errors';
 import { KeyPair } from './keyPair';
 import { CasperTransaction } from './ifaces';
-import { OWNER_PREFIX, SECP256K1_PREFIX } from './constants';
-import { getTransferAmount, getTransferDestinationAddress, getTransferId, isValidPublicKey } from './utils';
+import { OWNER_PREFIX, SECP256K1_PREFIX, TRANSACTION_TYPE } from './constants';
+import { getTransferAmount, getTransferDestinationAddress, getTransferId, isValidPublicKey, isWalletInitContract } from './utils';
 
 export class Transaction extends BaseTransaction {
   protected _type: TransactionType;
@@ -61,6 +61,10 @@ export class Transaction extends BaseTransaction {
   /** @inheritdoc */
   toJson(): CasperTransaction {
     const deployPayment = this._deploy.payment.asModuleBytes()!.getArgByName('amount');
+    const owner1Index = 0;
+    const owner2Index = 1;
+    const owner3Index = 2;
+
     if (!deployPayment) {
       throw new InvalidTransactionError('Undefined fee');
     }
@@ -71,6 +75,7 @@ export class Transaction extends BaseTransaction {
       from: Buffer.from(this._deploy.header.account.rawPublicKey).toString('hex'),
       startTime: new Date(this._deploy.header.timestamp).toISOString(),
       expiration: this._deploy.header.ttl,
+      deployType: (this._deploy.session.getArgByName(TRANSACTION_TYPE) as CLValue).asString(),
     };
 
     if (this._deploy.session.isTransfer()) {
@@ -80,6 +85,11 @@ export class Transaction extends BaseTransaction {
       result.amount = ((this._deploy.session.asTransfer() as Transfer).getArgByName('amount') as CLValue)
         .asBigNumber()
         .toString();
+    }
+    if (this._deploy.session.isModuleBytes() && isWalletInitContract(this._deploy.session.asModuleBytes())) {
+      result.owner1 = (this.casperTx.session.getArgByName(OWNER_PREFIX + owner1Index) as CLValue).asString()
+      result.owner2 = (this.casperTx.session.getArgByName(OWNER_PREFIX + owner2Index) as CLValue).asString()
+      result.owner3 = (this.casperTx.session.getArgByName(OWNER_PREFIX + owner3Index) as CLValue).asString()
     }
     return result;
   }
@@ -115,6 +125,8 @@ export class Transaction extends BaseTransaction {
 
       const ownersValues = new Map();
 
+      ownersValues.set(TRANSACTION_TYPE, (this.casperTx.session.getArgByName(TRANSACTION_TYPE) as CLValue).asString());
+
       [owner0, owner1, owner2].forEach(index => {
         ownersValues.set(
           OWNER_PREFIX + index,
@@ -136,6 +148,7 @@ export class Transaction extends BaseTransaction {
       const argValue = 1;
 
       const transferValues = new Map();
+      transferValues.set(TRANSACTION_TYPE, (this.casperTx.session.getArgByName(TRANSACTION_TYPE) as CLValue).asString());
       transferValues.set('amount', getTransferAmount(this.casperTx.session));
       transferValues.set('to_address', getTransferDestinationAddress(this.casperTx.session));
       transferValues.set('id', getTransferId(this.casperTx.session).toString());
